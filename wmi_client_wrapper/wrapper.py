@@ -19,19 +19,26 @@ class WmiClientWrapper(object):
     it directly to end-users.
     """
 
-    def __init__(self, username="Administrator", password=None, host=None, namespace='//./root/cimv2', delimiter="\01"):
+    def __init__(self,
+            username="Administrator",
+            password=None,
+            host=None,
+            namespace='//./root/cimv2',
+            delimiter="\01",
+            force_ntlm_v2=False):
         assert username
         assert password
-        assert host # assume host is up
+        assert host  # assume host is up
 
         # store the credentials for later
         self.username = username
         self.password = password
         self.host = host
+        self.force_ntlm_v2 = force_ntlm_v2
 
         self.delimiter = delimiter
         self.namespace = namespace
-        
+
     def _make_credential_args(self):
         """
         Makes credentials that get passed to wmic. This assembles a list of
@@ -54,7 +61,7 @@ class WmiClientWrapper(object):
         arguments.append(hostaddr)
         # the format for namespace
         space= "--namespace={namespace}".format(namespace=self.namespace)
-        
+
         arguments.append(space)
         return arguments
 
@@ -62,7 +69,15 @@ class WmiClientWrapper(object):
         """
         Makes extra configuration that gets passed to wmic.
         """
-        return ["--delimiter={delimiter}".format(delimiter=self.delimiter)]
+
+        params = []
+
+        if (self.force_ntlm_v2):
+            params.append('--option=client ntlmv2 auth=Yes')
+
+        params.append("--delimiter={delimiter}".format(delimiter=self.delimiter))
+
+        return params
 
     def _construct_query(self, klass):
         """
